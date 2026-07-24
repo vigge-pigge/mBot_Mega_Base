@@ -30,22 +30,32 @@ void loop() {
 
     if (leftDetected || rightDetected) {
         Serial.print("Krockdetektor aktiverad! ");
+        robotDrive.stop(); // Stoppa roboten omedelbart
+        delay(500); // Vänta lite innan backning
+        robotDrive.moveBackward(slowSpeed); // Backa lite för att undvika hinder
+        delay(1000); // Backa i 1 sekund
+        robotDrive.stop(); // Stoppa roboten efter backning
+        delay(500); // Vänta lite innan nästa åtgärd
         if (leftDetected && rightDetected) {
             Serial.print("Båda switcharna tryckta. ");
             statusLEDs.showCrash();
+            robotDrive.rotateRight(100); // Rotera åt 180 grader höger för att undvika hinder
+            delay(1800); // Rotera i 1.8 sekunder
+            robotDrive.stop();
         } else if (leftDetected) {
             Serial.print("Vänster switch tryckt. ");
             statusLEDs.showCrashLeft();
+            robotDrive.rotateRight(100); // Rotera 90 grader åt höger för att undvika hinder
+            delay(900); // Rotera i 0.9 sekunder
+            robotDrive.stop();
         } else if (rightDetected) {
             Serial.print("Höger switch tryckt. ");
             statusLEDs.showCrashRight();
+            robotDrive.rotateLeft(100); // Rotera 90 grader åt vänster för att undvika hinder
+            delay(900); // Rotera i 0.9 sekunder
+            robotDrive.stop();
         }
         Serial.println();
-        robotDrive.stop();
-        delay(500); // Vänta lite innan backning
-        robotDrive.moveBackward(currentSpeed);
-        delay(1000); // Backa i 1 sekund
-        robotDrive.stop();
     } else {
         Serial.println("Ingen krockdetektor aktiverad.");
     }
