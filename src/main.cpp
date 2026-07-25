@@ -1,4 +1,45 @@
 #include <Arduino.h>
+#include "LineSensor.hpp"
+#include "StatusLEDs.hpp"
+
+// Ange dina analoga pinnar här (t.ex. A8 och A9)
+LineSensor lineSensor(A8, A9, 500);
+StatusLEDs leds(A13, A14);
+
+void setup() {
+    Serial.begin(115200);
+    lineSensor.begin();
+    leds.begin();
+
+    Serial.println("--- Kalibrering av Linjesensorer ---");
+}
+
+void loop() {
+    int rawL = lineSensor.readLeftRaw();
+    int rawR = lineSensor.readRightRaw();
+
+    Serial.print("Vänster analogt: ");
+    Serial.print(rawL);
+    Serial.print(" | Höger analogt: ");
+    Serial.println(rawR);
+
+    // Visuell feedback på RGB-lamporna om de är över linjen
+    if (lineSensor.isLeftOnLine()) {
+        leds.setLeftColor(255, 255, 0); // Gul om vänster är på linjen
+    } else {
+        leds.setLeftColor(0, 0, 255);   // Blå om på vitt golv
+    }
+
+    if (lineSensor.isRightOnLine()) {
+        leds.setRightColor(255, 255, 0); // Gul om höger är på linjen
+    } else {
+        leds.setRightColor(0, 0, 255);   // Blå om på vitt golv
+    }
+
+    delay(300);
+}
+/*
+#include <Arduino.h>
 #include "MecanumDrive.hpp"
 #include "CrashDetector.hpp"
 #include "ProximitySensor.hpp"
@@ -109,6 +150,7 @@ void loop() {
     delay(200); // Läs av LED-status var 200 ms
 
     robotDrive.moveForward(currentSpeed);
+    */
 /*
     // 1. Framåt
     Serial.println("Kör framåt...");
@@ -181,4 +223,4 @@ void loop() {
 
     delay(4000);
 */
-}
+//}
