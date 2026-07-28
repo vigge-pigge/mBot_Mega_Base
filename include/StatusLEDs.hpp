@@ -12,7 +12,7 @@ private:
     uint8_t pinRight;
 
 public:
-    // A13 för vänster, A14 för höger. Fyra LEDs per sida.
+    // A14 för vänster, A13 för höger. Fyra LEDs per sida.
     StatusLEDs(uint8_t leftPin = A14, uint8_t rightPin = A13, uint8_t ledsPerModule = 4);
 
     void begin();

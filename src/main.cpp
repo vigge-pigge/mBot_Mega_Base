@@ -1,226 +1,231 @@
 #include <Arduino.h>
-#include "LineSensor.hpp"
-#include "StatusLEDs.hpp"
+#include "MecanumDrive.hpp"
 
-// Ange dina analoga pinnar här (t.ex. A8 och A9)
-LineSensor lineSensor(A8, A9, 500);
-StatusLEDs leds(A13, A14);
+#define DRIVE_SPEED 100
+
+MecanumDrive robotDrive;
 
 void setup() {
     Serial.begin(115200);
-    lineSensor.begin();
-    leds.begin();
+    delay(500);
+    robotDrive.stop();
+    Serial.println("mBot Mega: Serial Reciever Redo!");
+    Serial.println("Kommandon: FRAM, BACK, VANSTER, HOGER, STOPP");
+}
 
-    Serial.println("--- Kalibrering av Linjesensorer ---");
+void processCommand(String cmd) {
+    cmd.trim();
+    cmd.toUpperCase();
+
+    if (cmd == "FRAM") {
+        robotDrive.moveForward(DRIVE_SPEED);
+        Serial.println("Roboten kör framåt");
+    } else if (cmd == "BACK") {
+        robotDrive.moveBackward(DRIVE_SPEED);
+        Serial.println("Roboten kör bakåt");
+    } else if (cmd == "VANSTER") {
+        robotDrive.rotateLeft(DRIVE_SPEED);
+        Serial.println("Roboten roterar vänster");
+    } else if (cmd == "HOGER") {
+        robotDrive.rotateRight(DRIVE_SPEED);
+        Serial.println("Roboten roterar höger");
+    } else if (cmd == "STOPP") {
+        robotDrive.stop();
+        Serial.println("Roboten stoppad");
+    } else {
+        Serial.print("Okänt kommando: ");
+        Serial.println(cmd);
+    }
 }
 
 void loop() {
-    int rawL = lineSensor.readLeftRaw();
-    int rawR = lineSensor.readRightRaw();
-
-    Serial.print("Vänster analogt: ");
-    Serial.print(rawL);
-    Serial.print(" | Höger analogt: ");
-    Serial.println(rawR);
-
-    // Visuell feedback på RGB-lamporna om de är över linjen
-    if (lineSensor.isLeftOnLine()) {
-        leds.setLeftColor(255, 255, 0); // Gul om vänster är på linjen
-    } else {
-        leds.setLeftColor(0, 0, 255);   // Blå om på vitt golv
+    if (Serial.available() > 0) {
+        String incomingCommand = Serial.readStringUntil('\n');
+        processCommand(incomingCommand);
     }
-
-    if (lineSensor.isRightOnLine()) {
-        leds.setRightColor(255, 255, 0); // Gul om höger är på linjen
-    } else {
-        leds.setRightColor(0, 0, 255);   // Blå om på vitt golv
-    }
-
-    delay(300);
 }
+
 /*
 #include <Arduino.h>
 #include "MecanumDrive.hpp"
 #include "CrashDetector.hpp"
 #include "ProximitySensor.hpp"
 #include "StatusLEDs.hpp"
+#include "LineSensor.hpp" // <-- Lade till LineSensor-biblioteket!
 
+// ==================== PIN-KONFIGURATION ====================
+#define CRASH_LEFT_PIN A11
+#define CRASH_RIGHT_PIN A12
+#define PROXIMITY_LEFT_PIN A6
+#define PROXIMITY_MIDDLE_PIN A7
+#define PROXIMITY_RIGHT_PIN A8
+#define LINE_LEFT_PIN A9          // <-- Ny pin för Vänster linjesensor
+#define LINE_RIGHT_PIN A10        // <-- Ny pin för Höger linjesensor
+#define STATUS_LED_LEFT_PIN A14
+#define STATUS_LED_RIGHT_PIN A13
+
+// ==================== HASTIGHETSKONSTANTER ====================
+#define NORMAL_SPEED 100
+#define SLOW_SPEED 50
+
+// ==================== TIDSKONSTANTER ====================
+#define CRASH_DETECTION_TIMEOUT 500      
+#define PROXIMITY_CHECK_TIMEOUT 200      
+#define LINE_CHECK_TIMEOUT 100           // ms mellan linje-checkar
+#define SENSOR_LOOP_DELAY 50             
+
+// ==================== ROTATION-TIMING ====================
+#define ROTATE_90_DEGREES 900            
+#define ROTATE_180_DEGREES 1800          
+
+// ==================== ROBOT STATE-MACHINE ====================
+enum RobotState {
+    STATE_IDLE,
+    STATE_DRIVING,
+    STATE_CRASH_DETECTED,
+    STATE_PROXIMITY_ALERT,
+    STATE_LINE_DETECTED          // <-- Nytt state för linjerna
+};
+
+// ==================== GLOBALA OBJEKT ====================
 MecanumDrive robotDrive;
-CrashDetector crashDetector(A11, A12);
-ProximitySensor proximitySensor(A6, A8, A7);
-StatusLEDs statusLEDs(A14, A13);
+CrashDetector crashDetector(CRASH_LEFT_PIN, CRASH_RIGHT_PIN);
+ProximitySensor proximitySensor(PROXIMITY_LEFT_PIN, PROXIMITY_RIGHT_PIN, PROXIMITY_MIDDLE_PIN, 400);
+StatusLEDs statusLEDs(STATUS_LED_LEFT_PIN, STATUS_LED_RIGHT_PIN);
+LineSensor lineSensors(LINE_LEFT_PIN, LINE_RIGHT_PIN, 500); // <-- Skapade linjesensor-objektet
 
+// ==================== STATE-VARIABLER ====================
+RobotState currentState = STATE_IDLE;
+unsigned long lastCrashCheck = 0;
+unsigned long lastProximityCheck = 0;
+unsigned long lastLineCheck = 0;
+
+void handleCrash(bool leftPressed, bool rightPressed) {
+    robotDrive.stop();
+    delay(500);
+    robotDrive.moveBackward(SLOW_SPEED);
+    delay(1000);
+    robotDrive.stop();
+    delay(500);
+    
+    if (leftPressed && rightPressed) {
+        Serial.println("Krockdetektor: BÅDA sidor träffade - roterar 180°");
+        statusLEDs.showCrash();
+        robotDrive.rotateRight(100);
+        delay(ROTATE_180_DEGREES);
+    } else if (leftPressed) {
+        Serial.println("Krockdetektor: VÄNSTER sida träffade - roterar 90° höger");
+        // statusLEDs.showCrashLeft(); // Antar att funktionen finns i din StatusLEDs.hpp
+        robotDrive.rotateRight(100);
+        delay(ROTATE_90_DEGREES);
+    } else if (rightPressed) {
+        Serial.println("Krockdetektor: HÖGER sida träffade - roterar 90° vänster");
+        // statusLEDs.showCrashRight();
+        robotDrive.rotateLeft(100);
+        delay(ROTATE_90_DEGREES);
+    }
+    
+    robotDrive.stop();
+    currentState = STATE_IDLE;
+}
+
+void updateProximitySensors() {
+    bool leftDetected = proximitySensor.isLeftDetected();
+    bool rightDetected = proximitySensor.isRightDetected();
+    bool middleDetected = proximitySensor.isMiddleDetected();
+    
+    if (leftDetected || rightDetected || middleDetected) {
+        currentState = STATE_PROXIMITY_ALERT;
+    } else {
+        if (currentState == STATE_PROXIMITY_ALERT) {
+            currentState = STATE_DRIVING;
+        }
+    }
+}
+
+void updateLineSensors() {
+    int rawLeft = lineSensors.readLeftRaw();   // Hämtar råvärdet (0-1023)
+    int rawRight = lineSensors.readRightRaw(); // Hämtar råvärdet (0-1023)
+    
+    bool leftOnLine = lineSensors.isLeftOnLine();
+    bool rightOnLine = lineSensors.isRightOnLine();
+
+    // FELSÖKNINGS-UTSKRIFT: Berättar exakt vad roboten känner av
+    Serial.print("Linje Vänster (A9): ");
+    Serial.print(rawLeft);
+    Serial.print(" | Linje Höger (A10): ");
+    Serial.println(rawRight);
+
+    if (leftOnLine || rightOnLine) {
+        currentState = STATE_LINE_DETECTED;
+        robotDrive.stop();
+        Serial.print(">>> LINJE UPPTÄCKT! Vänster triggad: ");
+        Serial.print(leftOnLine);
+        Serial.print(" Höger triggad: ");
+        Serial.println(rightOnLine);
+        
+        delay(1000); 
+        currentState = STATE_IDLE;
+    }
+}
 void setup() {
     Serial.begin(115200);
+    delay(100);
+    
     proximitySensor.begin();
     crashDetector.begin();
     statusLEDs.begin();
-    Serial.println("--- mBot Mega Styrsystem: Drivning + Krockdetektor + Avståndssensor + LEDs Startat ---");
+    lineSensors.begin(); // <-- Starta linjesensorerna
+    
+    Serial.println("System redo. Alla sensorer är aktiva!");
     statusLEDs.showIdle();
-    delay(2000);
+    currentState = STATE_IDLE;
 }
 
 void loop() {
-    int normalSpeed = 100; // Normal hastighet
-    int slowSpeed = 50;   // Långsam hastighet när avståndssensorerna är aktiverade
-    int currentSpeed = normalSpeed;
-
-    // Säkerhetskontroll 1: Om någon av krockdetektorerna är aktiverade, stoppa roboten och backa lite
-    bool leftDetected = crashDetector.isLeftPressed();
-    bool rightDetected = crashDetector.isRightPressed();
-
-    if (leftDetected || rightDetected) {
-        Serial.print("Krockdetektor aktiverad! ");
-        robotDrive.stop(); // Stoppa roboten omedelbart
-        delay(500); // Vänta lite innan backning
-        robotDrive.moveBackward(slowSpeed); // Backa lite för att undvika hinder
-        delay(1000); // Backa i 1 sekund
-        robotDrive.stop(); // Stoppa roboten efter backning
-        delay(500); // Vänta lite innan nästa åtgärd
-        if (leftDetected && rightDetected) {
-            Serial.print("Båda switcharna tryckta. ");
-            statusLEDs.showCrash();
-            robotDrive.rotateRight(100); // Rotera åt 180 grader höger för att undvika hinder
-            delay(1800); // Rotera i 1.8 sekunder
-            robotDrive.stop();
-        } else if (leftDetected) {
-            Serial.print("Vänster switch tryckt. ");
-            statusLEDs.showCrashLeft();
-            robotDrive.rotateRight(100); // Rotera 90 grader åt höger för att undvika hinder
-            delay(900); // Rotera i 0.9 sekunder
-            robotDrive.stop();
-        } else if (rightDetected) {
-            Serial.print("Höger switch tryckt. ");
-            statusLEDs.showCrashRight();
-            robotDrive.rotateLeft(100); // Rotera 90 grader åt vänster för att undvika hinder
-            delay(900); // Rotera i 0.9 sekunder
-            robotDrive.stop();
-        }
-        Serial.println();
-    } else {
-        Serial.println("Ingen krockdetektor aktiverad.");
-    }
-
-    delay(200); // Läs av krockdetektorerna var 200 ms
-
-    // Säkerhetskontroll 2: Om någon av avståndssensorerna är aktiverade, sänk hastigheten
-    bool leftProximity = proximitySensor.isLeftDetected();
-    bool rightProximity = proximitySensor.isRightDetected();
-    bool middleProximity = proximitySensor.isMiddleDetected();
-
-    if (leftProximity || rightProximity || middleProximity) {
-        Serial.print("Avståndssensor aktiverad!");
-        if (leftProximity) {
-            Serial.print("Vänster sensor aktiverad.");
-            if (!crashDetector.isLeftPressed()) { // Om ingen krockdetektor är aktiverad, visa varning
-                statusLEDs.showProximityAlertLeft();
-            }
-        }
-        if (rightProximity) {
-            Serial.print("Höger sensor aktiverad.");
-            if (!crashDetector.isRightPressed()) { // Om ingen krockdetektor är aktiverad, visa varning
-                statusLEDs.showProximityAlertRight();
-            }
-        }
-        if (middleProximity) {
-            Serial.print("Mittensensor aktiverad.");
-            if (!crashDetector.isLeftPressed() && !crashDetector.isRightPressed()) { // Om ingen krockdetektor är aktiverad, visa varning
-                statusLEDs.showProximityAlert();
-            }
-        }
-        Serial.println();
-
-        currentSpeed = slowSpeed; // Sätt en lägre hastighet när avståndssensorerna är aktiverade
-    } else {
-        Serial.println("Ingen avståndssensor aktiverad.");
-    }
-
-    delay(200); // Läs av avståndssensorerna var 200 ms
-
-    // LED-statusindikering
-
-    // LED 1. Om vi kör
-    if (currentSpeed > 0 && !leftProximity && !rightProximity && !middleProximity) {
-        statusLEDs.showDriving();
-    } else if (currentSpeed == 0){
-        // LED 2. Om vi är stilla
-        statusLEDs.showIdle();
-    }
-
-    delay(200); // Läs av LED-status var 200 ms
-
-    robotDrive.moveForward(currentSpeed);
-    */
-/*
-    // 1. Framåt
-    Serial.println("Kör framåt...");
-    robotDrive.moveForward(currentSpeed);
-    delay(2000);
-    robotDrive.stop();
-    delay(1000);
+    unsigned long now = millis();
     
-    // 2. Glid Vänster (Strafe)
-    Serial.println("Glider åt vänster...");
-    robotDrive.strafeLeft(currentSpeed);
-    delay(2000);
-    robotDrive.stop();
-    delay(1000);
+    // 1. KROCKDETEKTOR (Högsta prioritet)
+    if (now - lastCrashCheck >= CRASH_DETECTION_TIMEOUT) {
+        lastCrashCheck = now;
+        bool leftCrash = crashDetector.isLeftPressed();
+        bool rightCrash = crashDetector.isRightPressed();
+        if (leftCrash || rightCrash) {
+            currentState = STATE_CRASH_DETECTED;
+            handleCrash(leftCrash, rightCrash);
+        }
+    }
+    
+    // 2. LINJESENSORER (Näst högsta prioritet)
+    if (now - lastLineCheck >= LINE_CHECK_TIMEOUT && currentState != STATE_CRASH_DETECTED) {
+        lastLineCheck = now;
+        updateLineSensors();
+    }
 
-    // 3. Glid Höger (Strafe)
-    Serial.println("Glider åt höger...");
-    robotDrive.strafeRight(currentSpeed);
-    delay(2000);
-    robotDrive.stop();
-    delay(1000);
-
-    // 4. Rotera Vänster
-    Serial.println("Roterar vänster...");
-    robotDrive.rotateLeft(currentSpeed);
-    delay(2000);
-    robotDrive.stop();
-    delay(1000);
-
-    // 5. Rotera Höger
-    Serial.println("Roterar höger...");
-    robotDrive.rotateRight(currentSpeed);
-    delay(2000);
-    robotDrive.stop();
-    delay(1000);
-
-    // 6. Diagonal Fram Vänster
-    Serial.println("Kör diagonalt framåt vänster...");
-    robotDrive.diagonalFL(currentSpeed);
-    delay(2000);
-    robotDrive.stop();
-    delay(1000);
-
-    // 7. Diagonal Fram Höger
-    Serial.println("Kör diagonalt framåt höger...");
-    robotDrive.diagonalFR(currentSpeed);
-    delay(2000);
-    robotDrive.stop();
-    delay(1000);
-
-    // 8. Diagonal Bak Vänster
-    Serial.println("Kör diagonalt bakåt vänster...");
-    robotDrive.diagonalRL(currentSpeed);
-    delay(2000);
-    robotDrive.stop();
-    delay(1000);
-
-    // 9. Diagonal Bak Höger
-    Serial.println("Kör diagonalt bakåt höger...");
-    robotDrive.diagonalRR(currentSpeed);
-    delay(2000);
-    robotDrive.stop();
-    delay(1000);
-
-    // 10. Bakåt
-    Serial.println("Kör bakåt...");
-    robotDrive.moveBackward(currentSpeed);
-    delay(2000);
-    robotDrive.stop();
-
-    delay(4000);
+    // 3. AVSTÅNDSSENSORER
+    if (now - lastProximityCheck >= PROXIMITY_CHECK_TIMEOUT && 
+        currentState != STATE_CRASH_DETECTED && 
+        currentState != STATE_LINE_DETECTED) {
+        lastProximityCheck = now;
+        updateProximitySensors();
+    }
+    
+    // ========== MOTORKONTROLL ==========
+    if (currentState == STATE_CRASH_DETECTED || currentState == STATE_LINE_DETECTED) {
+        // Logiken hanteras i respektive funktionsanrop (handleCrash / updateLineSensors)
+    } else if (currentState == STATE_PROXIMITY_ALERT) {
+        robotDrive.moveForward(SLOW_SPEED);
+    } else if (currentState == STATE_DRIVING) {
+        statusLEDs.showDriving();
+        robotDrive.moveForward(NORMAL_SPEED);
+    } else if (currentState == STATE_IDLE) {
+        statusLEDs.showIdle();
+        robotDrive.stop();
+        
+        // Ta bort kommentarstecknen nedan för att få roboten att köra automatiskt när den är idle
+        // currentState = STATE_DRIVING; 
+    }
+    
+    delay(SENSOR_LOOP_DELAY);
+}
 */
-//}

@@ -34,12 +34,12 @@ void StatusLEDs::showCrash() {
 }
 
 void StatusLEDs::showCrashLeft() {
-    setLeftColor(255, 0, 0); // Röd
-    //setRightColor(0, 0, 0); // Avstängd
+    setLeftColor(255, 0, 0);  // Röd
+    setRightColor(0, 0, 0);   // Avstängd
 }
 
 void StatusLEDs::showCrashRight() {
-    //setLeftColor(0, 0, 0); // Avstängd
+    setLeftColor(0, 0, 0);    // Avstängd
     setRightColor(255, 0, 0); // Röd
 }
 
@@ -48,7 +48,7 @@ void StatusLEDs::showDriving() {
 }
 
 void StatusLEDs::showIdle() {
-    setColor(0, 0, 255); // Blå
+    setColor(255, 255, 255); // Vit
 }
 
 void StatusLEDs::showProximityAlert() {
@@ -57,10 +57,10 @@ void StatusLEDs::showProximityAlert() {
 
 void StatusLEDs::showProximityAlertLeft() {
     setLeftColor(255, 255, 0); // Gul
-    //setRightColor(0, 0, 0); // Avstängd
+    setRightColor(0, 0, 0);    // Avstängd
 }
 
 void StatusLEDs::showProximityAlertRight() {
-    //setLeftColor(0, 0, 0); // Avstängd
+    setLeftColor(0, 0, 0);     // Avstängd
     setRightColor(255, 255, 0); // Gul
 }

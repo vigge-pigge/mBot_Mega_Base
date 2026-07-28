@@ -1,7 +1,7 @@
 #include <ProximitySensor.hpp>
 
-ProximitySensor::ProximitySensor(uint8_t leftPin, uint8_t rightPin, uint8_t middlePin)
-    : pinLeft(leftPin), pinRight(rightPin), pinMiddle(middlePin) {}
+ProximitySensor::ProximitySensor(uint8_t leftPin, uint8_t rightPin, uint8_t middlePin, int proximityThreshold)
+    : pinLeft(leftPin), pinRight(rightPin), pinMiddle(middlePin), threshold(proximityThreshold) {}
 
 void ProximitySensor::begin() {
     pinMode(pinLeft, INPUT);
@@ -9,17 +9,33 @@ void ProximitySensor::begin() {
     pinMode(pinMiddle, INPUT);
 }
 
+int ProximitySensor::readLeftRaw() {
+    return analogRead(pinLeft);
+}
+
+int ProximitySensor::readRightRaw() {
+    return analogRead(pinRight);
+}
+
+int ProximitySensor::readMiddleRaw() {
+    return analogRead(pinMiddle);
+}
+
 bool ProximitySensor::isLeftDetected() {
-    // Kollar om vänster sensor är aktiverad
-    return digitalRead(pinLeft) == LOW;
+    // Returnerar true om vänster sensor läser värde under threshold (hinder närvarande)
+    return readLeftRaw() < threshold;
 }
 
 bool ProximitySensor::isRightDetected() {
-    // Kollar om höger sensor är aktiverad
-    return digitalRead(pinRight) == LOW;
+    // Returnerar true om höger sensor läser värde under threshold (hinder närvarande)
+    return readRightRaw() < threshold;
 }
 
 bool ProximitySensor::isMiddleDetected() {
-    // Kollar om mittensensor är aktiverad
-    return digitalRead(pinMiddle) == LOW;
+    // Returnerar true om mitten sensor läser värde under threshold (hinder närvarande)
+    return readMiddleRaw() < threshold;
+}
+
+void ProximitySensor::setThreshold(int newThreshold) {
+    threshold = newThreshold;
 }

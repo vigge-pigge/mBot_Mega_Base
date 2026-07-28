@@ -8,18 +8,27 @@ private:
     uint8_t pinLeft;
     uint8_t pinRight;
     uint8_t pinMiddle;
+    int threshold; // Tröskelvärde för att avgöra om hinder är närvarande
 
 public:
-    // Standardportar
-    ProximitySensor(uint8_t leftPin = A6, uint8_t rightPin = A8, uint8_t middlePin = A7);
+    // Standardportar. Starttröskelvärde: 400
+    ProximitySensor(uint8_t leftPin = A6, uint8_t rightPin = A8, uint8_t middlePin = A7, int proximityThreshold = 400);
 
     // Måste kallas i setup() för att initiera sensorerna
     void begin();
 
-    // Kollar enskilda sensorer
+    // Läser de exakta analoga värdena (0-1023) från avståndssensorerna
+    int readLeftRaw();
+    int readRightRaw();
+    int readMiddleRaw();
+
+    // Kollar enskilda sensorer (TRUE om hinder detekteras)
     bool isLeftDetected();
     bool isRightDetected();
     bool isMiddleDetected();
+
+    // Ändra tröskelvärdet dynamiskt
+    void setThreshold(int newThreshold);
 };
 
 #endif
