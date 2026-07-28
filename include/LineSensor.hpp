@@ -7,11 +7,10 @@ class LineSensor {
 private:
     uint8_t pinLeft;
     uint8_t pinRight;
-    int threshold; // Tröskelvärde för att avgöra om sensorn ser linjen
 
 public:
     // Starttröskelvärde för linjesensorerna: 500
-    LineSensor(uint8_t leftPin = A9, uint8_t rightPin = A10, int lineThreshold = 500);
+    LineSensor(uint8_t leftPin = A9, uint8_t rightPin = A10);
 
     void begin();
 
@@ -23,8 +22,6 @@ public:
     bool isLeftOnLine();
     bool isRightOnLine();
 
-    // Ändra tröskelvärdet dynamiskt
-    void setThreshold(int newThreshold);
 };
 
 #endif

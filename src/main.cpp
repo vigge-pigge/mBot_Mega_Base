@@ -92,7 +92,7 @@ MecanumDrive robotDrive;
 CrashDetector crashDetector(CRASH_LEFT_PIN, CRASH_RIGHT_PIN);
 ProximitySensor proximitySensor(PROXIMITY_LEFT_PIN, PROXIMITY_RIGHT_PIN, PROXIMITY_MIDDLE_PIN, 400);
 StatusLEDs statusLEDs(STATUS_LED_LEFT_PIN, STATUS_LED_RIGHT_PIN);
-LineSensor lineSensors(LINE_LEFT_PIN, LINE_RIGHT_PIN, 500); // <-- Skapade linjesensor-objektet
+LineSensor lineSensors(LINE_LEFT_PIN, LINE_RIGHT_PIN); // <-- Skapade linjesensor-objektet
 
 // ==================== STATE-VARIABLER ====================
 RobotState currentState = STATE_IDLE;

@@ -1,7 +1,7 @@
 #include "LineSensor.hpp"
 
-LineSensor::LineSensor(uint8_t leftPin, uint8_t rightPin, int lineThreshold)
-    : pinLeft(leftPin), pinRight(rightPin), threshold(lineThreshold) {}
+LineSensor::LineSensor(uint8_t leftPin, uint8_t rightPin)
+    : pinLeft(leftPin), pinRight(rightPin) {}
 
 void LineSensor::begin() {
     pinMode(pinLeft, INPUT);
@@ -17,13 +17,9 @@ int LineSensor::readRightRaw() {
 }
 
 bool LineSensor::isLeftOnLine() {
-    return readLeftRaw() < threshold;
+    return readLeftRaw() < 500;
 }
 
 bool LineSensor::isRightOnLine() {
-    return readRightRaw() < threshold;
-}
-
-void LineSensor::setThreshold(int newThreshold) {
-    threshold = newThreshold;
+    return readRightRaw() < 500;
 }
