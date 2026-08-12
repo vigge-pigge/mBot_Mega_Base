@@ -1,48 +1,63 @@
 #include <Arduino.h>
 #include "MecanumDrive.hpp"
 
-#define DRIVE_SPEED 100
+// Definiera stift
+#define LINE_LEFT_PIN  A9
+#define LINE_RIGHT_PIN A10
+
+// Hastigheter (0-255)
+#define BASE_SPEED 100
+#define TURN_SPEED 70
+#define BACK_SPEED 50
 
 MecanumDrive robotDrive;
 
 void setup() {
     Serial.begin(115200);
-    delay(500);
+
+    pinMode(LINE_LEFT_PIN, INPUT);
+    pinMode(LINE_RIGHT_PIN, INPUT);
+
     robotDrive.stop();
-    Serial.println("mBot Mega: Serial Reciever Redo!");
-    Serial.println("Kommandon: FRAM, BACK, VANSTER, HOGER, STOPP");
-}
-
-void processCommand(String cmd) {
-    cmd.trim();
-    cmd.toUpperCase();
-
-    if (cmd == "FRAM") {
-        robotDrive.moveForward(DRIVE_SPEED);
-        Serial.println("Roboten kör framåt");
-    } else if (cmd == "BACK") {
-        robotDrive.moveBackward(DRIVE_SPEED);
-        Serial.println("Roboten kör bakåt");
-    } else if (cmd == "VANSTER") {
-        robotDrive.rotateLeft(DRIVE_SPEED);
-        Serial.println("Roboten roterar vänster");
-    } else if (cmd == "HOGER") {
-        robotDrive.rotateRight(DRIVE_SPEED);
-        Serial.println("Roboten roterar höger");
-    } else if (cmd == "STOPP") {
-        robotDrive.stop();
-        Serial.println("Roboten stoppad");
-    } else {
-        Serial.print("Okänt kommando: ");
-        Serial.println(cmd);
-    }
+    
+    delay(1000); // 1 sekunds fördröjning
+    Serial.println("=========================================");
+    Serial.println("  Linjeföljare för BRED linje startad!   ");
+    Serial.println("=========================================");
 }
 
 void loop() {
-    if (Serial.available() > 0) {
-        String incomingCommand = Serial.readStringUntil('\n');
-        processCommand(incomingCommand);
+    // Läs av båda sensorerna
+    int leftVal  = digitalRead(LINE_LEFT_PIN);
+    int rightVal = digitalRead(LINE_RIGHT_PIN);
+
+    // HIGH = SVART (Linje), LOW = VITT (Papper)
+    bool leftOnLine  = (leftVal == HIGH);
+    bool rightOnLine = (rightVal == HIGH);
+
+    // Beslutslogik för bred linje
+    if (leftOnLine && rightOnLine) {
+        // Båda sensorerna är kvar på det breda strecket -> Rakt fram
+        robotDrive.moveForward(BASE_SPEED);
+        Serial.println("RAKT FRAM (Centrerad)");
+    } 
+    else if (leftOnLine && !rightOnLine) {
+        // Höger sensor åkte ut på det vita -> Roboten glider åt höger -> Sväng vänster
+        robotDrive.rotateLeft(TURN_SPEED);
+        Serial.println("KORRIGERAR VÄNSTER");
+    } 
+    else if (!leftOnLine && rightOnLine) {
+        // Vänster sensor åkte ut på det vita -> Roboten glider åt vänster -> Sväng höger
+        robotDrive.rotateRight(TURN_SPEED);
+        Serial.println("KORRIGERAR HÖGER");
+    } 
+    else {
+        // Båda ser VITT -> Roboten har åkt av linjen helt
+        robotDrive.stop();
+        Serial.println("STOPP - Tappade linjen!");
     }
+
+    delay(25); // Snabb uppdateringsfrekvens
 }
 
 /*

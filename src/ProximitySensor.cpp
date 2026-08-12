@@ -35,7 +35,3 @@ bool ProximitySensor::isMiddleDetected() {
     // Returnerar true om mitten sensor läser värde under threshold (hinder närvarande)
     return readMiddleRaw() < threshold;
 }
-
-void ProximitySensor::setThreshold(int newThreshold) {
-    threshold = newThreshold;
-}

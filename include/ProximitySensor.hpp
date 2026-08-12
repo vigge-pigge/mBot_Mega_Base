@@ -8,7 +8,7 @@ private:
     uint8_t pinLeft;
     uint8_t pinRight;
     uint8_t pinMiddle;
-    int threshold; // Tröskelvärde för att avgöra om hinder är närvarande
+    const int threshold; // Fast tröskelvärde för att avgöra om hinder är närvarande
 
 public:
     // Standardportar. Starttröskelvärde: 400
@@ -26,9 +26,6 @@ public:
     bool isLeftDetected();
     bool isRightDetected();
     bool isMiddleDetected();
-
-    // Ändra tröskelvärdet dynamiskt
-    void setThreshold(int newThreshold);
 };
 
 #endif
