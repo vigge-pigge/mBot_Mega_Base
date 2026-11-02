@@ -4,8 +4,8 @@ CrashDetector::CrashDetector(uint8_t leftPin, uint8_t rightPin)
     : pinLeft(leftPin), pinRight(rightPin) {}
 
 void CrashDetector::begin() {
-    pinMode(pinLeft, INPUT);
-    pinMode(pinRight, INPUT);
+    pinMode(pinLeft, INPUT_PULLUP);
+    pinMode(pinRight, INPUT_PULLUP);
 }
 
 bool CrashDetector::isLeftPressed() {
